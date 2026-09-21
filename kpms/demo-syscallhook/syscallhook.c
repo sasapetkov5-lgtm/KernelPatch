@@ -33,12 +33,12 @@ enum pid_type
 struct pid_namespace;
 pid_t (*__task_pid_nr_ns)(struct task_struct *task, enum pid_type type, struct pid_namespace *ns) = 0;
 
-void before_openat_0(hook_fargs4_t *args, void *udata)
+void before_openat_0(hook_fargs6_t *args, void *udata)
 {
-    int dfd = (int)syscall_argn(args, 0);
-    const char __user *filename = (typeof(filename))syscall_argn(args, 1);
-    int flag = (int)syscall_argn(args, 2);
-    umode_t mode = (int)syscall_argn(args, 3);
+    pid_t target_pid = (pid_t)syscall_argn(args, 0);
+unsigned long liovcnt = (unsigned long)syscall_argn(args, 2);
+unsigned long riovcnt = (unsigned long)syscall_argn(args, 4);
+unsigned long flags = (unsigned long)syscall_argn(args, 5);
 
     char buf[1024];
     compat_strncpy_from_user(buf, filename, sizeof(buf));
@@ -88,13 +88,13 @@ static long syscall_hook_demo_init(const char *args, const char *event, void *__
     if (!strcmp("function_pointer_hook", margs)) {
         pr_info("function pointer hook ...");
         hook_type = FUNCTION_POINTER_CHAIN;
-        err = fp_hook_syscalln(__NR_openat, 4, before_openat_0, 0, 0);
+        err = fp_hook_syscalln(__NR_process_vm_readv, 6, before_openat_0, 0, 0);
         if (err) goto out;
-        err = fp_hook_syscalln(__NR_openat, 4, before_openat_1, after_openat_1, &open_counts);
+        err = fp_hook_syscalln(__NR_process_vm_readv, 6, before_openat_1, after_openat_1, &open_counts);
     } else if (!strcmp("inline_hook", margs)) {
         pr_info("inline hook ...");
         hook_type = INLINE_CHAIN;
-        err = inline_hook_syscalln(__NR_openat, 4, before_openat_0, 0, 0);
+        err = inline_hook_syscalln(__NR_process_vm_readv, 6, before_openat_0, 0, 0);
     } else {
         pr_warn("unknown args: %s\n", margs);
         return 0;
